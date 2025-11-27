@@ -1,26 +1,26 @@
-//cliente 
+// cliente
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <string.h>
 
 #define TAMANHO_BUFFER 1024
-#define PORT "4444"
-#define IP_SERVER "127.0.0.1"
+
 /*
 \\\\\\\\                                                      ////////
 \                                                                    /
 \                                                                    /
 \                          DJ GABRIEL, O BRABO!                       /
 \                                                                    /
-\                                                                    /  
+\                                                                    /
 \\\\\\\\                                                      ////////
 
 */
 
-int main (){
+int main()
+{
     WSADATA wsaData;
     int statusConnection;
     SOCKET ConnectSocket = INVALID_SOCKET;
@@ -28,61 +28,79 @@ int main (){
     struct addrinfo hints;
     char hostname[NI_MAXHOST];
 
-
-    //buffers que serao usados
+    // buffers que serao usados
     char buffEnvio[TAMANHO_BUFFER];
     char buffRec[TAMANHO_BUFFER];
-
+    char * PORT = malloc(6);
+    char * IP_SERVER = malloc(12);
     
-    statusConnection = WSAStartup(MAKEWORD(2,2), &wsaData);
-    if(statusConnection != 0){
+    system("cls || clear");
+
+    printf("Digite o ip: ");
+    fgets(IP_SERVER, 12, stdin);
+    fflush(stdin);
+    IP_SERVER[strcspn(IP_SERVER,"\n")] = 0;
+       
+    printf("Digite a porta: ");
+    fgets(PORT, 6, stdin);
+    fflush(stdin);
+    PORT[strcspn(PORT,"\n")] = '\0';
+    
+
+    statusConnection = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (statusConnection != 0)
+    {
         printf("WSAStartup falhou, erro: %d\n", statusConnection);
         system("pause");
         return 1;
     }
 
-    //pegando info da maquina
-    gethostname(hostname,NI_MAXHOST);//guardando o nome da maquina na variavel hostname
+    // pegando info da maquina
+    gethostname(hostname, NI_MAXHOST); // guardando o nome da maquina na variavel hostname
     printf("\nCliente: Nome: %s", hostname);
     PHOSTENT phe = gethostbyname(hostname);
-    
-    for (int i = 0; phe->h_addr_list[i] != 0; ++i){
+
+    for (int i = 0; phe->h_addr_list[i] != 0; ++i)
+    {
         struct in_addr addr;
         memcpy(&addr, phe->h_addr_list[i], sizeof(struct in_addr));
-        printf("Cliente: IP: %d: %s\n", i,inet_ntoa(addr));
+        printf("Cliente: IP: %d: %s\n", i, inet_ntoa(addr));
     }
 
-    ZeroMemory(&hints,sizeof(hints));   
+    ZeroMemory(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    statusConnection = getaddrinfo(IP_SERVER,PORT,&hints,&result);
-    if(statusConnection != 0){
+    statusConnection = getaddrinfo(IP_SERVER, PORT, &hints, &result);
+    if (statusConnection != 0)
+    {
         printf("getaddring falhou, erro: %d\n", statusConnection);
         WSACleanup();
         system("pause");
         return 1;
     }
-        
-    
-    //tentando conectar ao servidor
+
+    // tentando conectar ao servidor
 
     printf("\nTentando conectar no servidor, endereco %s, porta %s\n", IP_SERVER, PORT);
-    
-    //for ate se conectar
-    for(ptr=result; ptr != NULL; ptr=ptr->ai_next){
-        //criar o socket
+
+    // for ate se conectar
+    for (ptr = result; ptr != NULL; ptr = ptr->ai_next)
+    {
+        // criar o socket
         ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
-        if(ConnectSocket == INVALID_SOCKET){
+        if (ConnectSocket == INVALID_SOCKET)
+        {
             printf("Socket falhou, erro: %d\n", WSAGetLastError());
             WSACleanup();
             system("pause");
             return 1;
         }
-        //conectando    
+        // conectando
         statusConnection = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-        if(statusConnection == SOCKET_ERROR){
+        if (statusConnection == SOCKET_ERROR)
+        {
             closesocket(ConnectSocket);
             ConnectSocket = INVALID_SOCKET;
             continue;
@@ -91,38 +109,45 @@ int main (){
     }
 
     freeaddrinfo(result);
-    if(ConnectSocket == INVALID_SOCKET){
+    if (ConnectSocket == INVALID_SOCKET)
+    {
         printf("Nao foi possivel se conectar ao servidor!");
         system("pause");
         WSACleanup();
         return 1;
-    }else{
-        //MONTANDO MENSAGEM E ENVIANDO
-        char * mensagem = (char*)malloc(1024 * sizeof(char));
-        fgets(mensagem, 1024, stdin);
+    }
+    else
+    {
+        char *mensagem = (char *)malloc(1024 * sizeof(char));   
+        while (strcasecmp(mensagem, "EXIT") != 0){
+            
+            // MONTANDO MENSAGEM E ENVIANDO
+            printf("--> You say : ");
+            fgets(mensagem, 1024, stdin);
+            mensagem[strcspn(mensagem,"\n")] = 0;
+            
+            statusConnection = send(ConnectSocket, mensagem, (int)strlen(mensagem), 0);
+            statusConnection = recv(ConnectSocket,buffRec,TAMANHO_BUFFER,0);        
+            if(strcasecmp(buffRec,"exit") == 0){
+                break;
+            }
+            printf("--> Server say : %s\n",buffRec);
 
-        printf("Eviando indentificacao");
-        sprintf(buffEnvio, "Cliente %s\n", hostname);\
-        statusConnection = send(ConnectSocket, buffEnvio, (int)strlen(buffEnvio), 0);
-
-        
-        sprintf(buffEnvio, "%s\n", mensagem);
-        statusConnection = send(ConnectSocket, buffEnvio, (int)strlen(buffEnvio), 0);
-
-        //testando se a mensagem foi enviada
-        if(statusConnection = SOCKET_ERROR){
-            printf("Falhou no envio de mensagem, erro: %d\n", WSAGetLastError());
-            closesocket(ConnectSocket);
-            WSACleanup();
-            system("pause");
-            return 1;
+            if (statusConnection == SOCKET_ERROR){
+                printf("Falhou no envio de mensagem, erro: %d\n", WSAGetLastError());
+                closesocket(ConnectSocket);
+                WSACleanup();
+                system("pause");
+                return 1;
+            }
+            
         }
         free(mensagem);
     }
 
-    //encerrando conexao
+    // encerrando conexao
     statusConnection = shutdown(ConnectSocket, SD_SEND);
-    if(statusConnection == SOCKET_ERROR){
+    if (statusConnection == SOCKET_ERROR){
         printf("Falhou em encerrar a conexao %d\n", WSAGetLastError);
         closesocket(ConnectSocket);
         WSACleanup();

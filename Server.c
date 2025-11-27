@@ -6,7 +6,6 @@
 
 
 #define TAMANHO_BUFFER 1024
-#define PORT "4444"
 
 /*
 \\\\\\\\                                                      ////////
@@ -34,6 +33,15 @@ int main(){
 
     resultSock = WSAStartup(MAKEWORD(2,2), &wsaData);
 
+    system("cls || clear");
+
+    char * bufferPort = calloc(6,sizeof(char));
+    puts("Digite qual a porta a servir o servico de chat : ");
+    fgets(bufferPort,6,stdin);
+    bufferPort[strcspn(bufferPort,"\n")] = 0;
+    fflush(stdin);
+    
+    char * PORT = strdup(bufferPort);
     
 
     if(resultSock != 0){
@@ -45,7 +53,7 @@ int main(){
     char hostname[NI_MAXHOST];
     gethostname(hostname,NI_MAXHOST);
 
-    system("cls || clear");
+    
     printf("--> SERVER NAME : %s\n",hostname);
 
     PHOSTENT myHost = gethostbyname(hostname);
@@ -111,21 +119,34 @@ int main(){
 
     closesocket(listenSocket);
 
+    char * message = calloc(1024,sizeof(char));
 
     do{
         resultSock = recv(ClientSocket,recvBuffer,recvLenBuffer,0);
-        if(resultSock > 0){
-            printf("--> Client say : %s \n",recvBuffer);
-        }else if(resultSock == 0){
-            puts("ERRO AO CONECTAR");
-        }else{
-            printf("erro ao receber dados : %d\n",WSAGetLastError());
+        printf("--> Client say : %s\n",recvBuffer);
+        
+        if(strcasecmp(recvBuffer,"exit") == 0){
+            break;
+        }
+
+        printf("--> You say : ");
+        fgets(message, 1024, stdin);
+        message[strcspn(message,"\n")] =0;
+
+        resultSock = send(ClientSocket, message, (int)strlen(message), 0);
+
+        if (resultSock == SOCKET_ERROR){
+            printf("Falhou no envio de mensagem, erro: %d\n", WSAGetLastError());
             closesocket(ClientSocket);
             WSACleanup();
             system("pause");
-            return 1;  
+            return 1;
         }
-    }while(resultSock > 0);
+
+    }while(resultSock > 0 && strcasecmp(message,"exit") != 0);
+
+
+
 
     resultSock = shutdown(ClientSocket,SD_SEND);
     if(resultSock == SOCKET_ERROR){
@@ -136,7 +157,7 @@ int main(){
         return 1;  
     }
 
-    printf("Quit....");
+    printf("Quit....\n");
     closesocket(ClientSocket);
     WSACleanup();
     system("pause");
