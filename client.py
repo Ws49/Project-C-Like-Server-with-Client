@@ -81,14 +81,14 @@ class ControllChat:
                 controll.view.addMessage(message=mensagem)
         except Exception as e:
             if not ("[WinError 10053]" in str(e)):
-                print(f'Erro as : {e}')
+                view.addMessage("Erro as : {e}")
               
 
 
 
 def send_message(): 
-    controll.clientSocket.send(controll.view.entryMessage.get().encode())
-    controll.view.addMessage(controll.view.entryMessage.get())
+    controll.clientSocket.send(f"CLIENT : {controll.view.entryMessage.get()}".encode())
+    controll.view.addMessage(f"CLIENT : {controll.view.entryMessage.get()}")
     controll.view.entryMessage.delete(0,customtkinter.END)
 
 if __name__ == "__main__":
