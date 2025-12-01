@@ -24,12 +24,24 @@ class Server{
         void run(){
             bind(this->serverSocket,(struct sockaddr*)&serverAddres, sizeof(serverAddres));
             listen(serverSocket,5);
+            cout << "LISTEN..." << endl;
             int connectionClient = accept(this->serverSocket,nullptr,nullptr);
-           
-            char recvBuffer[1024] = {0};
-            recv(connectionClient,recvBuffer,sizeof(recvBuffer),0);
+            cout << "CONNECTED!" << endl;
+            // (localhostServer,portServer,ClientHost,PortClient)
+            string recvMessage;
+            string message;
+            fflush(stdin);
+            while(recvMessage != "exit" and message != "exit"){
+                char recvBuffer[1024] = {0};
+                recv(connectionClient,recvBuffer,sizeof(recvBuffer),0);
+                recvMessage = string(recvBuffer);
+                cout << "Client say: " << recvBuffer << endl;
+                cout << "You say: ";
+                getline(cin,message);
+                send(connectionClient, message.c_str(), message.size(), 0);
+            }
 
-            cout << "Messagem from Client: " << recvBuffer << endl;
+            //Fechando Conexao
             closesocket(connectionClient);
             closesocket(serverSocket);
             WSACleanup();
@@ -39,7 +51,10 @@ class Server{
 };
 
 int main(){
-    Server server = Server(8080);
+    int port;
+    cout << "Informe a porta a ser servida :";
+    cin >> port;
+    Server server = Server(port);
     server.run();
     return 0;
 }

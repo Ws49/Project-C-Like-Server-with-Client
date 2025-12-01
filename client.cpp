@@ -16,6 +16,8 @@ class Client{
     SOCKET sock;
     WSADATA wsa;
     sockaddr_in server;
+    string message;
+    char recvBuffer[1024] = {0};
     
     public:
     Client(string ip, int port){
@@ -36,18 +38,32 @@ class Client{
         this->server.sin_family = AF_INET;
         this->server.sin_port = htons(port);
         this->server.sin_addr.s_addr = inet_addr(ip.c_str());
+        this->message = "";
+    
     }
 
     void run(){
-        int result = connect(this->sock, (struct sockaddr*)&server, sizeof(this->server));
-        if(result == SOCKET_ERROR){
+        int Connection = connect(this->sock, (struct sockaddr*)&server, sizeof(this->server));
+
+        if(Connection == SOCKET_ERROR){
             cout<<"Erro ao coenctar" << endl;
             exit(1);
         }
+        cout<<"Conectado com Sucesso!!!\n";
 
-        cout<<"Conectado com Sucesso!!!";
-        string message = "olaaaa, conexao estabelecida!!!";
-        send(this->sock, message.c_str(), message.size(), 0);
+        string recvMessage;
+        while(recvMessage != "exit" and this->message != "exit"){
+            cout<<"You Say: ";
+            getline(cin, this->message);
+            send(this->sock, this->message.c_str(), this->message.size(), 0);
+
+            //fazendo papel do servidor
+            recvMessage = string(recvBuffer);
+            recv(this->sock,recvBuffer,sizeof(recvBuffer),0);    
+            cout << "Server say: " << recvBuffer << endl;
+        }
+
+        //Fechar a conexao
         closesocket(this->sock);
         ZeroMemory(&server, sizeof(server));
         WSACleanup();
@@ -61,6 +77,7 @@ int main(){
     cout<<"Digite o ip e a porta: "<<endl;
     cin>>ip;
     cin>>port;
+    fflush(stdin);
 
     Client client = Client(ip, port);
     client.run();
